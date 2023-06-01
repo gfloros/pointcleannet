@@ -99,6 +99,7 @@ def eval_pcpnet(opt):
         batch_size=model_batchSize,
         num_workers=int(opt.workers))
 
+    mps_device = torch.device('mps')
     regressor = ResPCPNet(
         num_points=trainopt.points_per_patch,
         output_dim=pred_dim,
@@ -106,8 +107,9 @@ def eval_pcpnet(opt):
         use_feat_stn=trainopt.use_feat_stn,
         sym_op=trainopt.sym_op,
         point_tuple=trainopt.point_tuple)
-    regressor.load_state_dict(torch.load(model_filename))
-    regressor.cuda()
+    model = torch.load(model_filename, map_location=mps_device)
+    regressor.load_state_dict(model)
+    regressor = regressor.to(mps_device)
     shape_ind = 0
     shape_patch_offset = 0
     if opt.sampling == 'full':
@@ -134,8 +136,8 @@ def eval_pcpnet(opt):
             points,originals,patch_radiuses, data_trans = data
         points = Variable(points, volatile=True)
         points = points.transpose(2, 1)
-        points = points.cuda()
-        data_trans = data_trans.cuda()
+        points = points.to(mps_device)
+        data_trans = data_trans.to(mps_device)
         pred, trans, _, _ = regressor(points)
         # don't need to work with autograd variables anymore
         pred = pred.data
@@ -156,7 +158,7 @@ def eval_pcpnet(opt):
                     o_pred[:, :] = torch.bmm(o_pred.unsqueeze(1), data_trans.transpose(2, 1)).squeeze(1)
 
                 # normalize normals
-                o_pred_len = torch.max(torch.cuda.FloatTensor([sys.float_info.epsilon*100]), o_pred.norm(p=2, dim=1, keepdim=True))
+                o_pred_len = torch.max(torch.FloatTensor([sys.float_info.epsilon*100]).to(mps_device), o_pred.norm(p=2, dim=1, keepdim=True))
                 o_pred = o_pred / o_pred_len
                 pred[:, output_pred_ind[oi]:output_pred_ind[oi]+3] = o_pred
             elif o in ['clean_points']:
@@ -172,16 +174,16 @@ def eval_pcpnet(opt):
                     # transform predictions with inverse pca rotation (back to world space)
                     o_pred[:, :] = torch.bmm(o_pred.unsqueeze(1), data_trans.transpose(2, 1)).squeeze(1)
                 n_points = patch_radiuses.shape[0]
-                o_pred = torch.mul(o_pred, torch.t(patch_radiuses.expand(3, n_points)).float().cuda()) + originals.cuda()
+                o_pred = torch.mul(o_pred, torch.t(patch_radiuses.expand(3, n_points)).float().to(mps_device)) + originals.to(mps_device)
                 pred[:, output_pred_ind[oi]:output_pred_ind[oi]+3] = o_pred
             elif o in ['outliers']:
                 # TODO check dimensions here
                 o_pred = pred[:, output_pred_ind[oi]:output_pred_ind[oi]+1]
                 outliers_value = o_pred.cpu()
                 is_outlier = torch.ByteTensor([1 if x > 0.5 else 0 for x in o_pred])
-                o_pred = originals.cuda()
+                o_pred = originals.to(mps_device)
 
-                o_pred = torch.cat((o_pred, outliers_value.cuda()), 1)
+                o_pred = torch.cat((o_pred, outliers_value.to(mps_device)), 1)
                 pred = o_pred
 
             elif o == 'max_curvature' or o == 'min_curvature':

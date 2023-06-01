@@ -14,13 +14,9 @@ This code was written by [Marie-Julie Rakotosaona](http://www.lix.polytechnique.
 * PyTorch 1.0
 
 ## Setup
-Install required python packages, if they are not already installed ([tensorboardX](https://github.com/lanpa/tensorboard-pytorch) is only required for training):
 ``` bash
-pip install numpy
-pip install scipy
-pip install tensorboardX
+python -m pip install -r requirements.txt
 ```
-
 
 Clone this repository:
 ``` bash
@@ -31,17 +27,15 @@ cd pointcleannet
 
 Download datasets:
 ``` bash
-cd data
-python download_data.py --task denoising
-python download_data.py --task outliers_removal
+python data/download_data.py --task denoising
+python data/download_data.py --task outliers_removal
 ```
 
 
 Download pretrained models:
 ``` bash
-cd models
-python download_models.py --task denoising
-python download_models.py --task outliers_removal
+python models/download_models.py --task denoising
+python models/download_models.py --task outliers_removal
 ```
 
  ## Data

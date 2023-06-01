@@ -99,6 +99,7 @@ def eval_pcpnet(opt):
         batch_size=model_batchSize,
         num_workers=int(opt.workers))
 
+    mps_device = torch.device('mps')
     regressor = ResPCPNet(
         num_points=trainopt.points_per_patch,
         output_dim=pred_dim,
@@ -106,8 +107,9 @@ def eval_pcpnet(opt):
         use_feat_stn=trainopt.use_feat_stn,
         sym_op=trainopt.sym_op,
         point_tuple=trainopt.point_tuple)
-    regressor.load_state_dict(torch.load(model_filename))
-    regressor.cuda()
+    model = torch.load(model_filename, map_location=mps_device)
+    regressor.load_state_dict(model)
+    regressor = regressor.to(mps_device)
 
     shape_ind = 0
     shape_patch_offset = 0
@@ -135,9 +137,9 @@ def eval_pcpnet(opt):
         points,originals, patch_radiuses,data_trans = data
         points = Variable(points, volatile=True)
         points = points.transpose(2, 1)
-        points = points.cuda()
+        points = points.to(mps_device)
 
-        data_trans = data_trans.cuda()
+        data_trans = data_trans.to(mps_device)
         pred, trans, _, _ = regressor(points)
         pred = pred.data
         if trans is not None:
@@ -155,7 +157,7 @@ def eval_pcpnet(opt):
                 o_pred[:, :] = torch.bmm(o_pred.unsqueeze(1), data_trans.transpose(2, 1)).squeeze(1)
             n_points = patch_radiuses.shape[0]
             # new coordinates are : old coordiantes + displacement vector
-            o_pred = torch.mul(o_pred, torch.t(patch_radiuses.expand(3, n_points)).float().cuda()) + originals.cuda()
+            o_pred = torch.mul(o_pred, torch.t(patch_radiuses.expand(3, n_points)).float().to(mps_device)) + originals.to(mps_device)
             pred[:, output_pred_ind[oi]:output_pred_ind[oi]+3] = o_pred
 
         print('[%s %d/%d] shape %s' % (model_name, batchind, num_batch-1, dataset.shape_names[shape_ind]))

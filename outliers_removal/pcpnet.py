@@ -53,7 +53,7 @@ class STN(nn.Module):
             if x.is_cuda:
                 x_scales = Variable(torch.cuda.FloatTensor(x.size(0), 1024*self.num_scales, 1))
             else:
-                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales, 1))
+                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales, 1).to(device='mps'))
             for s in range(self.num_scales):
                 x_scales[:, s*1024:(s+1)*1024, :] = self.mp1(x[:, :, s*self.num_points:(s+1)*self.num_points])
             x = x_scales
@@ -68,7 +68,7 @@ class STN(nn.Module):
         x = self.fc3(x)
 
         if not self.quaternion:
-            iden = Variable(torch.from_numpy(np.identity(self.dim, 'float32')).clone()).view(1, self.dim*self.dim).repeat(batchsize, 1)
+            iden = Variable(torch.from_numpy(np.identity(self.dim, 'float32')).clone().to(device='mps')).view(1, self.dim*self.dim).repeat(batchsize, 1)
 
             if x.is_cuda:
                 iden = iden.cuda()
@@ -76,7 +76,7 @@ class STN(nn.Module):
             x = x.view(-1, self.dim, self.dim)
         else:
             # add identity quaternion (so the network can output 0 to leave the point cloud identical)
-            iden = Variable(torch.FloatTensor([1, 0, 0, 0]))
+            iden = Variable(torch.FloatTensor([1, 0, 0, 0]).to(device='mps'))
             if x.is_cuda:
                 iden = iden.cuda()
             x = x + iden
@@ -85,7 +85,7 @@ class STN(nn.Module):
             if x.is_cuda:
                 trans = Variable(torch.cuda.FloatTensor(batchsize, 3, 3))
             else:
-                trans = Variable(torch.FloatTensor(batchsize, 3, 3))
+                trans = Variable(torch.FloatTensor(batchsize, 3, 3).to(device='mps'))
             x = utils.batch_quat_to_rotmat(x, trans)
         return x
 
@@ -197,7 +197,7 @@ class PointNetfeat(nn.Module):
             if x.is_cuda:
                 x_scales = Variable(torch.cuda.FloatTensor(x.size(0), 1024*self.num_scales**2, 1))
             else:
-                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales**2, 1))
+                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales**2, 1).to(device='mps'))
             if self.sym_op == 'max':
                 for s in range(self.num_scales):
                     x_scales[:, s*self.num_scales*1024:(s+1)*self.num_scales*1024, :] = self.mp1(x[:, :, s*self.num_points:(s+1)*self.num_points])
@@ -301,7 +301,7 @@ class ResSTN(nn.Module):
             if x.is_cuda:
                 x_scales = Variable(torch.cuda.FloatTensor(x.size(0), 1024*self.num_scales, 1))
             else:
-                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales, 1))
+                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales, 1).to(device='mps'))
             for s in range(self.num_scales):
                 x_scales[:, s*1024:(s+1)*1024, :] = self.mp1(x[:, :, s*self.num_points:(s+1)*self.num_points])
             x = x_scales
@@ -316,7 +316,7 @@ class ResSTN(nn.Module):
         x = self.bfc3(x)
 
         if not self.quaternion:
-            iden = Variable(torch.from_numpy(np.identity(self.dim, 'float32')).clone()).view(1, self.dim*self.dim).repeat(batchsize, 1)
+            iden = Variable(torch.from_numpy(np.identity(self.dim, 'float32')).clone().to(device='mps')).view(1, self.dim*self.dim).repeat(batchsize, 1)
 
             if x.is_cuda:
                 iden = iden.cuda()
@@ -324,7 +324,7 @@ class ResSTN(nn.Module):
             x = x.view(-1, self.dim, self.dim)
         else:
             # add identity quaternion (so the network can output 0 to leave the point cloud identical)
-            iden = Variable(torch.FloatTensor([1, 0, 0, 0]))
+            iden = Variable(torch.FloatTensor([1, 0, 0, 0]).to(device='mps'))
             if x.is_cuda:
                 iden = iden.cuda()
             x = x + iden
@@ -333,7 +333,7 @@ class ResSTN(nn.Module):
             if x.is_cuda:
                 trans = Variable(torch.cuda.FloatTensor(batchsize, 3, 3))
             else:
-                trans = Variable(torch.FloatTensor(batchsize, 3, 3))
+                trans = Variable(torch.FloatTensor(batchsize, 3, 3).to(device='mps'))
             x = utils.batch_quat_to_rotmat(x, trans)
         return x
 
@@ -426,7 +426,7 @@ class ResPointNetfeat(nn.Module):
             if x.is_cuda:
                 x_scales = Variable(torch.cuda.FloatTensor(x.size(0), 1024*self.num_scales**2, 1))
             else:
-                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales**2, 1))
+                x_scales = Variable(torch.FloatTensor(x.size(0), 1024*self.num_scales**2, 1).to(device='mps'))
             if self.sym_op == 'max':
                 for s in range(self.num_scales):
                     x_scales[:, s*self.num_scales*1024:(s+1)*self.num_scales*1024, :] = self.mp1(x[:, :, s*self.num_points:(s+1)*self.num_points])
